@@ -23,8 +23,8 @@ int position = 0;         // le posizioni massime sono date da angleCoeff. in qu
 
 SPISettings settings(20000000, MSBFIRST, SPI_MODE0);
 
-volatile uint32_t prevTime = 0;
-volatile uint32_t delta = 0;
+uint32_t prevTime = 0;
+uint32_t delta = 0;
 
 uint8_t image[360][5] = 
 {
@@ -390,6 +390,20 @@ uint8_t image[360][5] =
 {0x3,0xf0,0x83,0xff,0xff},
 };
 
+bool state = false;
+
+void IRAM_ATTR onTimer()
+{
+  writeImg(position);
+  
+  digitalWrite(RCLK, HIGH);
+  digitalWrite(RCLK, LOW);
+
+  position++;
+
+  if(position >= 360) position = 0;
+}
+
 void setup() {
   SPI.begin(SCLK, -1, MOSI);
   Serial.begin(9600);
@@ -401,30 +415,25 @@ void setup() {
   pinMode(RCLK, OUTPUT);
   SPI.beginTransaction(settings);
 
-  attachInterrupt(TRG_2, sense, RISING);
-}
+  timer = timerBegin(0, 160, true); // la cpu va a 160MHz quindi un prescaler da 160 ci da tick da 1us
+  timerAttachInterrupt(timer, &onTimer, true);
 
-void sense()
-{
-  uint32_t current = micros();
-  delta = current - prevTime;
-  prevTime = current;
+  timerAlarmWrite(timer, 110, true);    
+  timerAlarmEnable(timer);             // attiva il timer
 }
-
 
 void loop() 
 {
-  uint32_t t1 = micros();
-  writeImg(position);
-  
-  digitalWrite(RCLK, HIGH);
-  digitalWrite(RCLK, LOW);
-  //delayMicroseconds(del);
-  position++;
-
-  double tempoFetta = delta / 360; // * angleCoeff;
-  delayMicroseconds(tempoFetta - (micros()-t1));
-  if(position >= 360) position = 0;
+  bool button2state = digitalRead(TRG_2);
+  if(button2state && state == LOW)
+  {
+    state = false;
+    uint32_t currentTime = micros();
+    delta = currentTime - prevTime;
+    prevTime = currentTime;
+    timerAlarmWrite(timer, int(delta/360), true);
+  }
+  state = button2state;
 }
 
 void writeImg(uint8_t pos)
