@@ -4,7 +4,7 @@ import math
 import socket
 import struct
 
-img = cv2.imread('./doraemon2.png', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('./doraemonnuovo.png', cv2.IMREAD_GRAYSCALE)
 
 # img = cv2.blur(img, (5,5))
 ret,img = cv2.threshold(img,220,255,cv2.THRESH_BINARY)
@@ -27,30 +27,34 @@ cd = 80
 
 print(int(-1 * 40 * distance) + int(-1 * cd))
 
-for i in range(0, int(360/p)):
-    csin = math.sin(math.radians(i * p))
-    ccos = math.cos(math.radians(i * p))
+def generate_image():
+    outArray = []
+    for i in range(0, int(360/p)):
+        csin = math.sin(math.radians(i * p))
+        ccos = math.cos(math.radians(i * p))
 
-    buffer : int = 0
-    print("{", end="")
-    for l in range(nleds, 0, -1):
-        x = int(ccos * l * distance) + int(ccos * cd)
-        y = int(csin * l * distance) + int(csin * cd)
+        buffer : int = 0
+        print("{", end="")
 
-        bit : int = img[y + yInitOut][x + xInitOut] < 128
+        for l in range(nleds, 0, -1):
+            x = int(ccos * l * distance) + int(ccos * cd)
+            y = int(csin * l * distance) + int(csin * cd)
 
-        buffer = buffer << 1
-        buffer = buffer | (bit & 0x1)
+            bit : int = img[y + yInitOut][x + xInitOut] > 128
 
-        if (l % 8) == 7:
-            outArray.append(buffer)
-            print(hex(buffer), end="")
-            if(l > 7):
-                pass
-                print(",", end="")
-            buffer = 0
+            buffer = buffer << 1
+            buffer = buffer | (bit & 0x1)
 
-        blank[y + yInitOut][x + xInitOut] = bit * 128
-    print("},")
+            if (l % 8) == 7:
+                outArray.append(buffer)
+                print(hex(buffer), end="")
+                if(l > 7):
+                    pass
+                    print(",", end="")
+                buffer = 0
 
-cv2.imwrite('./output/final.jpg',blank)
+            blank[y + yInitOut][x + xInitOut] = bit * 128
+        print("},")
+    return outArray
+
+    cv2.imwrite('./output/final.jpg',blank)
