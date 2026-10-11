@@ -4,7 +4,7 @@ import math
 import socket
 import struct
 
-img = cv2.imread('./doraemonnuovo.png', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('./assets/doraemonnuovo.png', cv2.IMREAD_GRAYSCALE)
 
 # img = cv2.blur(img, (5,5))
 ret,img = cv2.threshold(img,220,255,cv2.THRESH_BINARY)
@@ -58,3 +58,5 @@ def generate_image():
     return outArray
 
     cv2.imwrite('./output/final.jpg',blank)
+
+generate_image()
