@@ -1,5 +1,5 @@
 #include <SPI.h>
-#include <WiFi.h>
+#include "images.h"
 
 #define MOSI D10
 #define SCLK D8
@@ -13,9 +13,6 @@
 #define TRG_3 D3
 #define TRG_4 D7
 
-long del = 1;
-bool received = false;
-
 const uint8_t zero[] = {0,0,0,0,0};
 
 const int RIGHE = 360;
@@ -28,41 +25,7 @@ SPISettings settings(20000000, MSBFIRST, SPI_MODE0);
 volatile uint32_t prevTime = 0;
 volatile uint32_t delta = 0;
 
-// wifi
-const char* ssid     = "ssid";
-const char* password = "passwd";
-
-IPAddress server_ip(10, 201, 3, 62); 
-const uint16_t server_port = 9999;
-WiFiClient client;
-
-const size_t ARRAY_SIZE_BYTES = RIGHE * COLONNE * sizeof(uint8_t); // 1800 byte
-
-// lampeggio led attesa connessione
-unsigned long prevBlink = 0;
-uint16_t blinkDelay = 600;
-bool blinkStat = false;
-
-// delay wifi
-unsigned long prevWifi = 0;
-uint16_t wifiDelay = 5000;
-
 unsigned long initTime = 0;
-
-void connectToServer() {
-  Serial.print("Tentativo di connessione a ");
-  Serial.print(server_ip);
-  Serial.print(" sulla porta ");
-  Serial.println(server_port);
-
-  // client.connect() restituisce true se la connessione è stata stabilita
-  if (client.connect(server_ip, server_port)) {
-    Serial.println("Connessione TCP riuscita!");
-    client.println("ciao");
-  } else {
-    Serial.println("Connessione TCP fallita.");
-  }
-}
 
 void setup() {
   SPI.begin(SCLK, -1, MOSI);
@@ -77,19 +40,6 @@ void setup() {
   
   // trg1 e trg2 sono rotti 
   attachInterrupt(TRG_3, sense, RISING);
-
-  Serial.println();
-  Serial.print("Connessione a: ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
-
-  // Attendi fino a quando non è connesso
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  connectToServer();
 }
 
 void sense()
@@ -102,47 +52,16 @@ void sense()
 
 void loop() 
 {
-  initTime = micros();
-  if(!received)
-  {
-    unsigned long currentTime = millis();
-    if(currentTime - prevBlink > blinkDelay)
-    {
-        prevBlink = currentTime;
-        blinkStat = !blinkStat;
-        writeAllLeds(blinkStat);
-    }
+  writeImg(position, image);
+  
+  digitalWrite(RCLK, HIGH);
+  digitalWrite(RCLK, LOW);
+  position++;
+  if (position > 360) position = 0;
 
-    if (client.available()) {
-      size_t bytesRead = client.readBytes(&image[0][0], ARRAY_SIZE_BYTES);
-      client.print("ACK: Ricevuto");
-      received = true;
-      client.stop();
-    }
-
-    if (!client.connected() && (currentTime - prevWifi > wifiDelay)) {
-      Serial.println("Disconnesso dal server. Arresto e Riconnessione...");
-      client.stop();
-      connectToServer();
-      prevWifi = currentTime;
-    }
-    delay(10); 
-  }
-  else{
-
-    if (millis()-int(prevTime/1000) > 3000) received = false;
-    writeImg(position, image);
-    
-    digitalWrite(RCLK, HIGH);
-    digitalWrite(RCLK, LOW);
-    //delayMicroseconds(del);
-    position++;
-
-    double tempoFetta = delta / 360; // * angleCoeff;
-    unsigned long errorDelay = micros() - initTime;
-    delayMicroseconds(tempoFetta - errorDelay);
-    if(position >= 360) position = 0;
-  }
+  double tempoFetta = delta / 360; // * angleCoeff;
+  unsigned long errorDelay = micros() - initTime;
+  delayMicroseconds(tempoFetta - errorDelay);
 }
 
 void writeAllLeds(bool state)
