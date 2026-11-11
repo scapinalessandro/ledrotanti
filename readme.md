@@ -1,5 +1,5 @@
-[!CAUTION]
-Progetto non completo e codice scritto malino.
+> [!CAUTION]
+> Progetto non completo e codice scritto malino.
 
 # Ventilatore olografico
 ## Configurazione Python
